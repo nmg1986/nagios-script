@@ -1,0 +1,60 @@
+#!/bin/bash
+
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+
+print_usage()
+{
+	echo 
+	echo "Usage:$(basename $0) -w percent -c percent -p patition"
+	echo
+}
+
+if [[ $# -lt 4 || "$1" != "-w" || "$3" != "-c" || "$5" != "-p" ]];then
+	print_usage
+	exit $STATE_OK 
+fi	
+
+while [ $# -gt 0 ]
+do
+	case "$1" in
+		"-w")
+			shift
+			WARNING=$1
+			;;
+		"-c")
+			shift
+			CRITICAL=$1
+			;;
+		"-p")
+			shift
+			PARTION=$1
+			;;
+	esac
+	shift
+done
+
+if [[ $WARNING -eq $CRITICAL || $WARNING -gt $CRITICAL ]] ;then
+	echo 
+	echo "WARNING should letter than CRITICAL"
+	echo
+fi
+
+result=$(df -h | grep $PARTION | awk '{printf("%s %s %s %s %s %s %s %s\n","total",$2,"used",$3,"free",$4,"disk-use",$5)}')
+used_percent=$(df -h | grep $PARTION | awk '{print $(NF-1)}')
+used=${used_percent/\%/}
+
+if [[ $used -gt $WARNING && $used -lt $CRITICAL ]];then
+	echo "DISK WARING - $result" 
+	exit $STATE_WARNING
+
+elif [[ $used -gt $CRITICAL ]];then
+	echo "DISK CRITICAL - $result"
+	exit $STATE_CRITICAL
+else
+	echo "DISK OK - $result"
+	exit $STATE_OK
+fi
+
